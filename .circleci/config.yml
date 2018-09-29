@@ -1,15 +1,22 @@
 version: 2
 jobs:
   build:
-    working_directory: /go/src/github.com/ymgyt/cloudops
     docker:
       - image: circleci/golang:1.11.0
+
+    working_directory: /go/src/github.com/ymgyt/cloudops
+
+    environment:
+      TEST_RESULTS: /tmp/test-results
+
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
+
       - restore_cache:
           keys:
             - v1-pkg-cache
+
       - run: go get github.com/golang/dep/cmd/dep 
       - run: dep ensure
       - run: make test | tee ${TEST_RESULTS}/go-test.out
