@@ -11,6 +11,5 @@ jobs:
           keys:
             - v1-pkg-cache
       - run: go get github.com/golang/dep/cmd/dep 
-      - run:
-          name: run tests
-          make test | tee ${TEST_RESULTS}/go-test.out
+      - run: dep ensure
+      - run: make test | tee ${TEST_RESULTS}/go-test.out
