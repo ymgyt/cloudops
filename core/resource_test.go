@@ -7,53 +7,43 @@ import (
 	"github.com/ymgyt/cloudops/testutil"
 )
 
-func TestNewResource(t *testing.T) {
+func TestInspectPath(t *testing.T) {
 	tests := []struct {
-		desc      string
-		path      string
-		want      core.Resource
-		wantError bool
-		err       error
+		desc string
+		path string
+		want core.ResourceType
 	}{
-		{
-			desc: "relative path",
-			path: "./path/to/src",
-			want: core.Resource{
-				Type: core.LocalResource,
-			},
-		},
-		{
-			desc: "absolute path",
-			path: "/path/to/src",
-			want: core.Resource{
-				Type: core.LocalResource,
-			},
-		},
-		{
-			desc: "empty is invalid",
-			path: "",
-			want: core.Resource{
-				Type: core.InvalidResource,
-			},
-		},
-		{
-			desc: "s3 is remote",
-			path: "s3://",
-			want: core.Resource{
-				Type: core.RemoteResource,
-			},
-		},
+		{"dot relative path", "./path/to/src/txt", core.LocalFileResource},
+		{"relative path", "path/to/src.txt", core.LocalFileResource},
+		{"absolute path", "/path/to/src.txt", core.LocalFileResource},
+		{"s3", "s3://bucket/prefix/object", core.S3Resource},
+		{"empty", "", core.InvalidResource},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := core.NewResource(tt.path)
+			got, want := core.InspectPath(tt.path), tt.want
+			testutil.Diff(t, got, want)
+		})
+	}
+}
 
-			if !testutil.AssertError(t, tt.wantError, err, tt.err) {
-				return
+func TestResourceType_IsLocal(t *testing.T) {
+	tests := []struct {
+		desc string
+		rsc  core.ResourceType
+		want bool
+	}{
+		{"local file", core.LocalFileResource, true},
+		{"invalid never local", core.InvalidResource, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, want := tt.rsc.IsLocal(), tt.want
+			if got != want {
+				t.Errorf("%v IsLocal does not match. want %v, got %v", tt.rsc, want, got)
 			}
-
-			testutil.Diff(t, *got, tt.want)
 		})
 	}
 }

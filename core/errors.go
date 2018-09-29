@@ -1,6 +1,10 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+
+	validator "gopkg.in/go-playground/validator.v9"
+)
 
 // ErrCode -
 type ErrCode int
@@ -18,6 +22,7 @@ const (
 	Unauthenticated
 	RateLimit
 	NotImplementedYet
+	Canceled
 	Undefined
 )
 
@@ -34,9 +39,22 @@ func NewError(code ErrCode, msg string) Error {
 
 // WrapError -
 func WrapError(code ErrCode, msg string, err error) Error {
+	if err == nil {
+		return nil
+	}
 	e := newError(code, msg)
 	e.err = err
 	return e
+}
+
+// NotImplementedError -
+func NotImplementedError(msg string) Error {
+	return newError(NotImplementedYet, msg)
+}
+
+// Validate -
+func Validate(input interface{}, v *validator.Validate) Error {
+	return WrapError(InvalidParam, fmt.Sprintf("%v", input), v.Struct(input))
 }
 
 // ErrorCode -

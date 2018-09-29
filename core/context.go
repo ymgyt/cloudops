@@ -12,9 +12,17 @@ type Context struct {
 	Log      *zap.Logger
 	Validate *validator.Validate
 	Ctx      context.Context
+
+	cancel func()
 }
 
 // NewContext -
-func NewContext(log *zap.Logger, v *validator.Validate) *Context {
-	return &Context{Log: log, Validate: v}
+func NewContext(background context.Context, log *zap.Logger, v *validator.Validate) *Context {
+	ctx, cancel := context.WithCancel(background)
+	return &Context{Log: log, Validate: v, Ctx: ctx, cancel: cancel}
+}
+
+// Cancel -
+func (c *Context) Cancel() {
+	c.cancel()
 }

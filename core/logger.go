@@ -166,8 +166,10 @@ func (c *LoggerConfig) buildEncoder() (zapcore.Encoder, error) {
 
 func (c *LoggerConfig) options() []zap.Option {
 	options := []zap.Option{
-		zap.AddCaller(),
 		zap.AddCallerSkip(0),
+	}
+	if c.LoggingLevel == LoggingLvlDebug {
+		options = append(options, zap.AddCaller())
 	}
 	return options
 }

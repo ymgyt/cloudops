@@ -6,10 +6,10 @@ import (
 	"go.uber.org/zap"
 	validator "gopkg.in/go-playground/validator.v9"
 
-	"github.com/davecgh/go-spew/spew"
 	cli "github.com/jawher/mow.cli"
 
 	"github.com/ymgyt/cloudops/core"
+	"github.com/ymgyt/cloudops/usecase"
 )
 
 const (
@@ -20,8 +20,14 @@ const (
 type CopyCommand struct {
 	ctx *core.Context
 
-	dryrun    bool
-	recursive bool
+	fileOps usecase.FileOps
+
+	dryrun     bool
+	recursive  bool
+	createDir  bool
+	skipPrompt bool
+	remove     bool
+	regexp     string
 
 	src  string
 	dest string
@@ -32,7 +38,7 @@ func (cmd *CopyCommand) Run() {
 	cmd.printStart()
 	if err := cmd.run(); err != nil {
 		cmd.ctx.Log.Error("copy", zap.Error(err))
-		cli.Exit(1)
+		cli.Exit(2)
 	}
 }
 
@@ -63,18 +69,26 @@ func (cmd *CopyCommand) run() error {
 }
 
 type copyRequest struct {
-	Dryrun    bool
-	Recursive bool
-	Src       string `validate:"required"`
-	Dest      string `validate:"required"`
+	Dryrun     bool
+	Recursive  bool
+	CreateDir  bool
+	SkipPrompt bool
+	Remove     bool
+	Regexp     string
+	Src        string `validate:"required"`
+	Dest       string `validate:"required"`
 }
 
 func (cmd *CopyCommand) newRequest() (*copyRequest, error) {
 	req := &copyRequest{
-		Dryrun:    cmd.dryrun,
-		Recursive: cmd.recursive,
-		Src:       cmd.src,
-		Dest:      cmd.dest,
+		Dryrun:     cmd.dryrun,
+		Recursive:  cmd.recursive,
+		CreateDir:  cmd.createDir,
+		SkipPrompt: cmd.skipPrompt,
+		Remove:     cmd.remove,
+		Regexp:     cmd.regexp,
+		Src:        cmd.src,
+		Dest:       cmd.dest,
 	}
 	return req, req.validate(cmd.ctx.Validate)
 }
@@ -83,24 +97,35 @@ func (cmd *CopyCommand) newRequest() (*copyRequest, error) {
 type copyHandler func(*copyRequest) error
 
 func (cmd *CopyCommand) dispatch(req *copyRequest) (handler string, err error) {
-	src, dest, err := cmd.readTargets(req)
-	spew.Dump(src, dest)
-	if err != nil {
-		return "", err
+	src, dest := core.InspectPath(req.Src), core.InspectPath(req.Dest)
+	if src == core.InvalidResource || dest == core.InvalidResource {
+		return "", core.NewError(core.InvalidParam, fmt.Sprintf("invalid arguments src:%s, dest:%s", src, dest))
 	}
 	switch {
-	case src.Type == core.LocalResource && dest.Type == core.RemoteResource:
+	case src.IsLocal() && dest.IsRemote():
 		handler = localRemoteHdler
 	default:
-		err = core.NewError(core.NotImplementedYet, fmt.Sprintf("copy %v to %v", src.Type, dest.Type))
+		err = core.NewError(core.NotImplementedYet, fmt.Sprintf("copy %v to %v", src, dest))
 	}
 	return handler, err
 }
 
 // FIXME: more good name
 func (cmd *CopyCommand) localRemote(req *copyRequest) error {
-	spew.Dump(req)
-	return nil
+	out, err := cmd.fileOps.CopyLocalToRemote(&usecase.CopyLocalToRemoteInput{
+		Dryrun:      req.Dryrun,
+		Recursive:   req.Recursive,
+		CreateDir:   req.CreateDir,
+		Regexp:      req.Regexp,
+		SkipConfirm: req.SkipPrompt,
+		Remove:      req.Remove,
+		Src:         req.Src,
+		Dest:        req.Dest})
+	if err != nil {
+		return err
+	}
+
+	return cmd.localRemoteReport(out)
 }
 
 func (req *copyRequest) validate(validate *validator.Validate) error {
@@ -110,20 +135,13 @@ func (req *copyRequest) validate(validate *validator.Validate) error {
 	return nil
 }
 
-func (cmd *CopyCommand) readTargets(req *copyRequest) (src *core.Resource, dest *core.Resource, err error) {
-	src, err = core.NewResource(req.Src)
-	if err != nil {
-		return nil, nil, err
-	}
-	dest, err = core.NewResource(req.Dest)
-	if err != nil {
-		return nil, nil, err
-	}
-	return src, dest, nil
+func (cmd *CopyCommand) localRemoteReport(out *usecase.CopyLocalToRemoteOutput) error {
+	cmd.ctx.Log.Info("copy", zap.Int("copied_files", out.CopiedNum))
+	return nil
 }
 
 func (cmd *CopyCommand) printStart() {
-	cmd.ctx.Log.Info("copy start",
+	cmd.ctx.Log.Info("copy",
 		zap.String("src", cmd.src), zap.String("dest", cmd.dest),
 		zap.Bool("dryrun", cmd.dryrun), zap.Bool("recursive", cmd.recursive))
 }

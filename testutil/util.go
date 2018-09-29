@@ -1,7 +1,10 @@
 package testutil
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"io/ioutil"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -32,6 +35,15 @@ func AssertError(t *testing.T, wantError bool, got, want error) bool {
 
 // Diff -
 func Diff(t *testing.T, got, want interface{}) {
+	t.Helper()
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got +want)\n%s", diff)
+	}
+}
+
+// DiffUnex diff unexported struct.
+func DiffUnex(t *testing.T, got, want interface{}) {
+	t.Helper()
 	if diff := cmp.Diff(got, want, cmp.AllowUnexported(got)); diff != "" {
 		t.Errorf("(-got +want)\n%s", diff)
 	}
@@ -44,4 +56,26 @@ func DammyContext() *core.Context {
 		Validate: validator.New(),
 		Ctx:      context.Background(),
 	}
+}
+
+// Resource
+type Resource struct {
+	FakeType    core.ResourceType
+	FakeURI     string
+	FakeContent string
+}
+
+// Type -
+func (r *Resource) Type() core.ResourceType {
+	return r.FakeType
+}
+
+// URI -
+func (r *Resource) URI() string {
+	return r.FakeURI
+}
+
+// Open -
+func (r *Resource) Open() (io.ReadCloser, error) {
+	return ioutil.NopCloser(bytes.NewReader([]byte(r.FakeContent))), nil
 }

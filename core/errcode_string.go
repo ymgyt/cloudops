@@ -4,9 +4,9 @@ package core
 
 import "strconv"
 
-const _ErrCode_name = "OKInvalidParamConflictTimeoutInternalExternalNotFoundUnauthorizedUnauthenticatedRateLimitNotImplementedYetUndefined"
+const _ErrCode_name = "OKInvalidParamConflictTimeoutInternalExternalNotFoundUnauthorizedUnauthenticatedRateLimitNotImplementedYetCanceledUndefined"
 
-var _ErrCode_index = [...]uint8{0, 2, 14, 22, 29, 37, 45, 53, 65, 80, 89, 106, 115}
+var _ErrCode_index = [...]uint8{0, 2, 14, 22, 29, 37, 45, 53, 65, 80, 89, 106, 114, 123}
 
 func (i ErrCode) String() string {
 	if i < 0 || i >= ErrCode(len(_ErrCode_index)-1) {

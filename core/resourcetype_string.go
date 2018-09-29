@@ -4,9 +4,9 @@ package core
 
 import "strconv"
 
-const _ResourceType_name = "InvalidResourceRemoteResourceLocalResource"
+const _ResourceType_name = "InvalidResourceS3ResourceLocalFileResource"
 
-var _ResourceType_index = [...]uint8{0, 15, 29, 42}
+var _ResourceType_index = [...]uint8{0, 15, 25, 42}
 
 func (i ResourceType) String() string {
 	if i < 0 || i >= ResourceType(len(_ResourceType_index)-1) {

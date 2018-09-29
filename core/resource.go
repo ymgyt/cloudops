@@ -1,11 +1,19 @@
 package core
 
-import "strings"
+import (
+	"io"
+	"strings"
+)
 
 // Resource -
-type Resource struct {
-	Type ResourceType
+type Resource interface {
+	Type() ResourceType
+	URI() string
+	Open() (io.ReadCloser, error)
 }
+
+// Resources -
+type Resources []Resource
 
 // ResourceType -
 type ResourceType int
@@ -13,30 +21,42 @@ type ResourceType int
 //go:generate stringer -type ResourceType resource.go
 const (
 	InvalidResource ResourceType = iota
-	RemoteResource
-	LocalResource
+	S3Resource
+	LocalFileResource
 )
 
-// NewResource -
-func NewResource(path string) (*Resource, error) {
-	return &Resource{
-		Type: inspectPath(path),
-	}, nil
+// IsLocal -
+func (rt ResourceType) IsLocal() bool {
+	if rt == InvalidResource {
+		return false
+	}
+	if rt == LocalFileResource {
+		return true
+	}
+	return false
 }
 
-func inspectPath(path string) ResourceType {
+// IsRemote -
+func (rt ResourceType) IsRemote() bool {
+	if rt == InvalidResource {
+		return false
+	}
+	return !rt.IsLocal()
+}
+
+// NOTE: not sure which layer should have resource type decision responsibility.
+// InspectPath return corresponding resource type.
+func InspectPath(path string) ResourceType {
 	if path == "" {
 		return InvalidResource
 	}
-
 	if strings.HasPrefix(path, "s3://") {
-		return RemoteResource
+		return S3Resource
 	}
-
 	c := path[0]
-	if c == '/' || c == '.' {
-		return LocalResource
+	if c == '/' || c == '.' || c == '~' {
+		return LocalFileResource
 	}
 
-	return LocalResource
+	return LocalFileResource
 }

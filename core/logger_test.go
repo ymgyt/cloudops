@@ -21,7 +21,7 @@ func TestLogger(t *testing.T) {
 				LoggingEncode: LoggingEncJSON,
 			},
 			msg:  "golang or gohome",
-			want: "{\"level\":\"INFO\",\"caller\":\"core/logger_test.go:47\",\"msg\":\"golang or gohome\"}\n",
+			want: "{\"level\":\"INFO\",\"msg\":\"golang or gohome\"}\n",
 		},
 		{
 			desc: "text logging",
@@ -30,7 +30,7 @@ func TestLogger(t *testing.T) {
 				LoggingEncode: LoggingEncText,
 			},
 			msg:  "golang or gohome",
-			want: "INFO\tcore/logger_test.go:47\tgolang or gohome\n",
+			want: "INFO\tgolang or gohome\n",
 		},
 	}
 
