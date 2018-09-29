@@ -2,7 +2,7 @@ package backends_test
 
 import (
 	"bytes"
-	"io"
+	"strings"
 	"testing"
 
 	"github.com/ymgyt/cloudops/backends"
@@ -11,9 +11,9 @@ import (
 )
 
 func TestPromptConfirmer(t *testing.T) {
-	w := new(bytes.Buffer)
-	r := new(bytes.Buffer)
-	p, err := backends.NewPromptConfirmer(w, r, "[yes/no]", []string{"yes"})
+	var gotMsg bytes.Buffer
+
+	p, err := backends.NewPromptConfirmer(&gotMsg, strings.NewReader("yes\n"), "[yes/no]", []string{"yes"})
 	if err != nil {
 		t.Fatalf("NewPromptConfirmer() failed %s", err)
 	}
@@ -23,8 +23,6 @@ func TestPromptConfirmer(t *testing.T) {
 		&testutil.Resource{FakeType: core.LocalFileResource, FakeURI: "file:///bbb.txt"},
 	}
 
-	go func() { io.WriteString(r, "yes\n") }()
-
 	ok, err := p.Confirm("delete", rs)
 	if err != nil {
 		t.Fatalf("want no error, but got %s", err)
@@ -33,9 +31,9 @@ func TestPromptConfirmer(t *testing.T) {
 	if !ok {
 		t.Error("PromptConfirmer should return true but return false")
 	}
+
 	wantMsg := `file:///aaa.txt
 file:///bbb.txt
 delete [yes/no] `
-	gotMsg := w.String()
-	testutil.Diff(t, gotMsg, wantMsg)
+	testutil.Diff(t, gotMsg.String(), wantMsg)
 }
