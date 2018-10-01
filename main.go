@@ -86,7 +86,7 @@ func main() {
 
 	app.Command("cp", "copy file(s) to/from remote datastorage", func(cmd *cli.Cmd) {
 
-		cmd.Spec = "[--recursive[--regexp]][--dryrun][--yes] SRC DST"
+		cmd.Spec = "[--recursive[--regexp]][--dryrun][--yes][--remove] SRC DST"
 
 		var (
 			recursive  = cmd.BoolOpt("R recursive", false, "copy recursively")

@@ -44,6 +44,9 @@ func (c *s3Client) Put(in *core.PutInput) (*core.PutOutput, error) {
 		}
 		n++
 	}
+	if in.Dryrun {
+		n = 0
+	}
 	return &core.PutOutput{PutNum: n}, nil
 }
 

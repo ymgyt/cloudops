@@ -136,7 +136,7 @@ func (req *copyRequest) validate(validate *validator.Validate) error {
 }
 
 func (cmd *CopyCommand) localRemoteReport(out *usecase.CopyLocalToRemoteOutput) error {
-	cmd.ctx.Log.Info("copy", zap.Int("copied_files", out.CopiedNum))
+	cmd.ctx.Log.Info("copy", zap.Int("copied_files", out.CopiedNum), zap.Int("deleted_files", out.RemovedNum))
 	return nil
 }
 

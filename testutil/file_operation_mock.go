@@ -47,16 +47,3 @@ func (m *MockFileOps) CopyLocalToRemote(arg0 *usecase.CopyLocalToRemoteInput) (*
 func (mr *MockFileOpsMockRecorder) CopyLocalToRemote(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CopyLocalToRemote", reflect.TypeOf((*MockFileOps)(nil).CopyLocalToRemote), arg0)
 }
-
-// RemoveLocal mocks base method
-func (m *MockFileOps) RemoveLocal(arg0 *usecase.RemoveLocalInput) (*usecase.RemoveLocalOutput, error) {
-	ret := m.ctrl.Call(m, "RemoveLocal", arg0)
-	ret0, _ := ret[0].(*usecase.RemoveLocalOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RemoveLocal indicates an expected call of RemoveLocal
-func (mr *MockFileOpsMockRecorder) RemoveLocal(arg0 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveLocal", reflect.TypeOf((*MockFileOps)(nil).RemoveLocal), arg0)
-}
