@@ -11,7 +11,6 @@ import (
 // FileOps -
 type FileOps interface {
 	CopyLocalToRemote(*CopyLocalToRemoteInput) (*CopyLocalToRemoteOutput, error)
-	RemoveLocal(*RemoveLocalInput) (*RemoveLocalOutput, error)
 }
 
 // CopyLocalToRemoteInput -
@@ -28,7 +27,8 @@ type CopyLocalToRemoteInput struct {
 
 // CopyLocalToRemoteOutput -
 type CopyLocalToRemoteOutput struct {
-	CopiedNum int
+	CopiedNum  int
+	RemovedNum int
 }
 
 // RemoveLocalInput -
@@ -64,6 +64,7 @@ func (fo *fileOps) CopyLocalToRemote(in *CopyLocalToRemoteInput) (*CopyLocalToRe
 	if err != nil {
 		return nil, err
 	}
+
 	return out, nil
 }
 
@@ -76,8 +77,13 @@ func (fo *fileOps) copyLocalToRemote(in *CopyLocalToRemoteInput) (*CopyLocalToRe
 		return nil, err
 	}
 
+	resources := fetchOut.Resources
 	if !in.SkipConfirm {
-		ok, err := fo.confirmer.Confirm(fmt.Sprintf("copy files to %s ", in.Dest), fetchOut.Resources)
+		var msg string = fmt.Sprintf("copy files to %s", in.Dest)
+		if in.Dryrun {
+			msg = "[Dryrun] " + msg
+		}
+		ok, err := fo.confirmer.Confirm(msg, resources)
 		if err != nil {
 			return nil, err
 		}
@@ -91,15 +97,38 @@ func (fo *fileOps) copyLocalToRemote(in *CopyLocalToRemoteInput) (*CopyLocalToRe
 		Recursive: in.Recursive,
 		CreateDir: in.CreateDir,
 		Dest:      in.Dest,
-		Resources: fetchOut.Resources})
+		Resources: resources})
 	if err != nil {
 		return nil, err
 	}
 
-	return &CopyLocalToRemoteOutput{CopiedNum: putOut.PutNum}, nil
-}
+	var removedNum int
+	if in.Remove {
+		if !in.SkipConfirm {
+			var msg string = fmt.Sprintf("delete above file(s)")
+			if in.Dryrun {
+				msg = "[Dryrun] " + msg
+			}
+			ok, err := fo.confirmer.Confirm(msg, resources)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				return nil, core.NewError(core.Canceled, "")
+			}
+		}
+		removeOut, err := fo.fileSystem.Remove(&core.RemoveInput{
+			Dryrun:    in.Dryrun,
+			Resources: resources,
+		})
+		if err != nil {
+			return nil, err
+		}
+		removedNum = removeOut.RemoveNum
+	}
 
-// RemoveLocal -
-func (fo *fileOps) RemoveLocal(in *RemoveLocalInput) (*RemoveLocalOutput, error) {
-	return nil, core.NotImplementedError("fileOps.RemoveLocal")
+	return &CopyLocalToRemoteOutput{
+		CopiedNum:  putOut.PutNum,
+		RemovedNum: removedNum,
+	}, nil
 }

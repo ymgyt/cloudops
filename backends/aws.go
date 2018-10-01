@@ -11,8 +11,10 @@ import (
 
 // NewAWSSession -
 func NewAWSSession(region, id, secret, token string) (*session.Session, error) {
-	crd := credentials.NewStaticCredentials(id, secret, token)
-	cfg := aws.NewConfig().WithCredentials(crd).WithRegion(region)
+	static := credentials.NewStaticCredentials(id, secret, token)
+	cfg := aws.NewConfig().
+		WithCredentials(static).
+		WithRegion(region)
 	return session.NewSession(cfg)
 }
 

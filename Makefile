@@ -3,15 +3,18 @@ GOPACKAGES = $(shell go list ./... | grep -Ev '(/vendor/|testutil)')
 VERSION = 0.0.1
 BUILD_LDFLAGS = "\
 					-X main.version=$(VERSION)"
+
 all: ensure generate format lint test vet build
 
 lint:
-	gometalinter --vendored-linters --vendor --cyclo-over=15 \
+	gometalinter --vendored-linters --vendor --cyclo-over=15 --deadline=100s \
 	             --aggregate --sort=path --disable=megacheck --disable=gas \
-	             --exclude='fmt.Fprint'
+	             --exclude='/usr/local/go' \
+	             --exclude='fmt.Fprint' .
 
 build: $(GOFILES) generate format
-	go build -ldflags $(BUILD_LDFLAGS) -o bin/cloudops
+	@mkdir -p bin/local/
+	go build -ldflags $(BUILD_LDFLAGS) -o bin/local/cloudops
 
 generate: install
 	go generate ./...
@@ -20,7 +23,7 @@ format:
 	goimports -local "github.com/ymgyt/cloudops" -w .
 
 test:
-	@go test  $(GOPACKAGES)
+	@go test -cover $(GOPACKAGES)
 
 deps:
 	go get -u github.com/golang/dep/cmd/dep
@@ -31,7 +34,7 @@ ensure:
 	dep ensure
 
 clean:
-	rm ./cloudops
+	rm -rf bin/ ||:
 
 install:
 	go install ./...

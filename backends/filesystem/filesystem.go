@@ -6,6 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
+
+	"go.uber.org/zap"
 
 	"github.com/ymgyt/cloudops/core"
 )
@@ -54,7 +57,61 @@ func (fs *fileSystem) Fetch(in *core.FetchInput) (*core.FetchOutput, error) {
 
 // Remove -
 func (fs *fileSystem) Remove(in *core.RemoveInput) (*core.RemoveOutput, error) {
-	return nil, core.NotImplementedError("fileSystem.Remove()")
+	sideEffect, err := fs.removeSideEffect(in.Resources, in.Dryrun)
+	if err != nil {
+		return nil, err
+	}
+	if err := fs.doRemove(sideEffect); err != nil {
+		return nil, err
+	}
+	removedNum := len(in.Resources)
+	if in.Dryrun {
+		removedNum = 0
+	}
+	return &core.RemoveOutput{
+		RemoveNum: removedNum,
+	}, nil
+}
+
+func (fs *fileSystem) removeSideEffect(resources core.Resources, dryrun bool) ([]*removeSideEffect, error) {
+	var se = make([]*removeSideEffect, 0, len(resources))
+	for _, r := range resources {
+		fp, err := fs.trimScheme(r.URI())
+		if err != nil {
+			return nil, err
+		}
+		se = append(se, &removeSideEffect{
+			Dryrun:   dryrun,
+			Filepath: fp,
+		})
+	}
+	return se, nil
+}
+
+func (fs *fileSystem) trimScheme(path string) (string, error) {
+	const scheme = "file://"
+	if !strings.HasPrefix(path, scheme) {
+		return "", core.NewError(core.InvalidParam, fmt.Sprintf("invalid file path %s", path))
+	}
+	if len(path) <= len(scheme) {
+		return "", core.NewError(core.InvalidParam, fmt.Sprintf("invalid file path %s", path))
+	}
+	return path[len(scheme):], nil
+}
+
+func (fs *fileSystem) doRemove(sideEffects []*removeSideEffect) error {
+	log := fs.ctx.Log
+	for _, se := range sideEffects {
+		if se.Dryrun {
+			log.Info("remove", zap.String("file", se.Filepath), zap.Bool("dryrun", se.Dryrun))
+			continue
+		}
+		log.Info("remove", zap.String("file", se.Filepath))
+		if err := os.Remove(se.Filepath); err != nil {
+			return core.WrapError(core.Internal, "", err)
+		}
+	}
+	return nil
 }
 
 func (fs *fileSystem) fetchFiles(path string, exp string) (core.Resources, error) {
@@ -129,4 +186,10 @@ func (r *fileResource) Open() (io.ReadCloser, error) {
 		return nil, core.WrapError(core.Internal, "", err)
 	}
 	return f, nil
+}
+
+// removeSideEffect represents remove operation for remove side effect to be thin.
+type removeSideEffect struct {
+	Dryrun   bool
+	Filepath string
 }

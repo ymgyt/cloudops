@@ -36,7 +36,12 @@ type FetchOutput struct {
 }
 
 // RemoveInput -
-type RemoveInput struct{}
+type RemoveInput struct {
+	Dryrun bool
+	Resources
+}
 
 // RemoveOutput -
-type RemoveOutput struct{}
+type RemoveOutput struct {
+	RemoveNum int
+}
