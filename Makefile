@@ -16,6 +16,10 @@ build: $(GOFILES) generate format
 	@mkdir -p bin/local/
 	go build -ldflags $(BUILD_LDFLAGS) -o bin/local/cloudops
 
+build/linux:
+	@mkdir -p bin/linux_amd64
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags $(BUILD_LDFLAGS) -o bin/linux_amd64/cloudops
+
 generate: install
 	go generate ./...
 
@@ -42,4 +46,4 @@ install:
 vet:
 	go vet ./...
 
-.PHONY: lint build format test deps all install vet
+.PHONY: lint build format test deps all install vet build-linux
