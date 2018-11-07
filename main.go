@@ -58,13 +58,10 @@ func main() {
 
 		fileOps       usecase.FileOps
 		gcpProjectOps usecase.GCPProjectOps
+		err           error
 	)
 
 	app.Before = func() {
-		fail := func(err error) {
-			fmt.Fprintln(os.Stderr, err)
-			cli.Exit(1)
-		}
 
 		logger, err := core.NewLogger(*loggingLevel, *loggingEncode)
 		if err != nil {
@@ -140,6 +137,54 @@ func main() {
 		})
 	})
 
+	app.Command("bigquery bq", "gcp bigquery operations", func(bq *cli.Cmd) {
+		bq.Spec = "[--project-id]"
+
+		var (
+			projectID = bq.String(cli.StringOpt{Name: "project-id", Desc: "gcp projectID", EnvVar: "GCP_PROJECT_ID"})
+			credJSON  = readFile(*googleApplicationCredentials)
+			bqSrv     core.BigqueryService
+			bqOps     *usecase.BigqueryOps
+		)
+
+		bq.Before = func() {
+			if bqSrv, err = gcp.NewBigqueryService(ctx, *projectID, credJSON); err != nil {
+				fail(err)
+			}
+			if bqOps, err = usecase.NewBigqueryOps(ctx, bqSrv); err != nil {
+				fail(err)
+			}
+		}
+
+		bq.Command("query", "run query sql", func(query *cli.Cmd) {
+			query.Spec = "[--dry-run][--max-bytes][--dest-dataset --dest-table --write-disposition[--create-disposition]] QUERY"
+
+			var (
+				queryArg          = query.StringArg("QUERY", "", "query")
+				dryrun            = query.BoolOpt("dry-run", false, "dry run")
+				maxBytes          = query.IntOpt("max-bytes", 0, "limit to which query read table data")
+				destDataset       = query.StringOpt("dest-dataset", "", "dataset to which query result saved")
+				destTable         = query.StringOpt("dest-table", "", "table to which query result saved")
+				createDisposition = query.StringOpt("create-disposition", "never", "specify the circumstances under which destination table will be created. ifneeded and never are supported")
+				writeDisposition  = query.StringOpt("write-disposition", "empty", "specify how existing data in a destination table is treated. empty, append, and truncate are supported")
+			)
+
+			query.Action = func() {
+				(&BQueryCommand{
+					ctx:               ctx,
+					bqOps:             bqOps,
+					query:             *queryArg,
+					dryrun:            *dryrun,
+					maxBytesBilled:    int64(*maxBytes),
+					destDatasetID:     *destDataset,
+					destTableID:       *destTable,
+					createDisposition: *createDisposition,
+					writeDisposition:  *writeDisposition,
+				}).Run()
+			}
+		})
+	})
+
 	errCh := make(chan error)
 	go func() {
 		errCh <- app.Run(os.Args)
@@ -169,18 +214,33 @@ func watchSignal() chan os.Signal {
 	return ch
 }
 
+func readFile(path string) []byte {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		fail(err)
+	}
+	return b
+}
+
 func newGoogleClient(ctx context.Context, path string) (*http.Client, error) {
 	if path == "" {
 		return nil, nil
 	}
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
+	data := readFile(path)
 	crd, err := google.CredentialsFromJSON(ctx, data, cloudresourcemanager.CloudPlatformReadOnlyScope)
 	if err != nil {
 		return nil, err
 	}
 	tokenSource := crd.TokenSource
 	return oauth2.NewClient(ctx, tokenSource), nil
+}
+
+func fail(err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintln(os.Stderr, r)
+		}
+	}()
+	fmt.Fprintln(os.Stderr, err)
+	cli.Exit(1)
 }
