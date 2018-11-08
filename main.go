@@ -149,10 +149,10 @@ func main() {
 
 		bq.Before = func() {
 			if bqSrv, err = gcp.NewBigqueryService(ctx, *projectID, credJSON); err != nil {
-				fail(err)
+				initializeFail(err)
 			}
 			if bqOps, err = usecase.NewBigqueryOps(ctx, bqSrv); err != nil {
-				fail(err)
+				initializeFail(err)
 			}
 		}
 
@@ -233,6 +233,11 @@ func newGoogleClient(ctx context.Context, path string) (*http.Client, error) {
 	}
 	tokenSource := crd.TokenSource
 	return oauth2.NewClient(ctx, tokenSource), nil
+}
+
+func initializeFail(err error) {
+	fmt.Fprintln(os.Stderr, err)
+	os.Exit(2)
 }
 
 func fail(err error) {

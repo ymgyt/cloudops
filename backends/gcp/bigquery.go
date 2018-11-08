@@ -12,6 +12,9 @@ import (
 
 // NewBigqueryService -
 func NewBigqueryService(ctx *core.Context, projectID string, credJSON []byte) (*Bigquery, error) {
+	if projectID == "" {
+		return nil, core.NewError(core.InvalidParam, "projectID is empty")
+	}
 	client, err := bigquery.NewClient(ctx.Ctx, projectID, option.WithCredentialsJSON(credJSON))
 	if err != nil {
 		return nil, err
