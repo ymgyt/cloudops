@@ -120,15 +120,18 @@ func main() {
 	})
 
 	app.Command("project", "manage gcp project resources", func(project *cli.Cmd) {
-		if googleClient, err = newGoogleClient(ctx.Ctx, *googleApplicationCredentials); err != nil {
-			fail(err)
+		project.Before = func() {
+			if googleClient, err = newGoogleClient(ctx.Ctx, *googleApplicationCredentials); err != nil {
+				fail(err)
+			}
+			if gcpProject, err = gcp.NewGCPProjectService(ctx, googleClient); err != nil {
+				fail(err)
+			}
+			if gcpProjectOps, err = usecase.NewGCPProjectsOps(ctx, gcpProject); err != nil {
+				fail(err)
+			}
 		}
-		if gcpProject, err = gcp.NewGCPProjectService(ctx, googleClient); err != nil {
-			fail(err)
-		}
-		if gcpProjectOps, err = usecase.NewGCPProjectsOps(ctx, gcpProject); err != nil {
-			fail(err)
-		}
+
 		project.Command("list", "list projects", func(list *cli.Cmd) {
 			list.Action = func() {
 				(&ProjectListCommand{ctx: ctx, projectsOps: gcpProjectOps}).Run()
