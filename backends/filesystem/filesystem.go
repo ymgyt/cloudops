@@ -1,38 +1,43 @@
 package filesystem
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/dustin/go-humanize"
 
 	"go.uber.org/zap"
 
 	"github.com/ymgyt/cloudops/core"
 )
 
-// NewFileSystem -
-func New(ctx *core.Context) (core.Backend, error) {
+// New -
+func New(ctx *core.Context) (*FileSystem, error) {
 	return newFileSystem(ctx)
 }
 
-func newFileSystem(ctx *core.Context) (*fileSystem, error) {
-	return &fileSystem{ctx: ctx}, nil
+func newFileSystem(ctx *core.Context) (*FileSystem, error) {
+	return &FileSystem{ctx: ctx}, nil
 }
 
-type fileSystem struct {
+// FileSystem -
+type FileSystem struct {
 	ctx *core.Context
 }
 
 // Put -
-func (fs *fileSystem) Put(in *core.PutInput) (*core.PutOutput, error) {
+func (fs *FileSystem) Put(in *core.PutInput) (*core.PutOutput, error) {
 	return nil, core.NotImplementedError("fileSystem.Put()")
 }
 
 // Fetch -
-func (fs *fileSystem) Fetch(in *core.FetchInput) (*core.FetchOutput, error) {
+func (fs *FileSystem) Fetch(in *core.FetchInput) (*core.FetchOutput, error) {
 	src := in.Src
 	stat, err := os.Stat(src)
 	if os.IsNotExist(err) {
@@ -56,7 +61,7 @@ func (fs *fileSystem) Fetch(in *core.FetchInput) (*core.FetchOutput, error) {
 }
 
 // Remove -
-func (fs *fileSystem) Remove(in *core.RemoveInput) (*core.RemoveOutput, error) {
+func (fs *FileSystem) Remove(in *core.RemoveInput) (*core.RemoveOutput, error) {
 	sideEffect, err := fs.removeSideEffect(in.Resources, in.Dryrun)
 	if err != nil {
 		return nil, err
@@ -73,7 +78,7 @@ func (fs *fileSystem) Remove(in *core.RemoveInput) (*core.RemoveOutput, error) {
 	}, nil
 }
 
-func (fs *fileSystem) removeSideEffect(resources core.Resources, dryrun bool) ([]*removeSideEffect, error) {
+func (fs *FileSystem) removeSideEffect(resources core.Resources, dryrun bool) ([]*removeSideEffect, error) {
 	var se = make([]*removeSideEffect, 0, len(resources))
 	for _, r := range resources {
 		fp, err := fs.trimScheme(r.URI())
@@ -88,7 +93,7 @@ func (fs *fileSystem) removeSideEffect(resources core.Resources, dryrun bool) ([
 	return se, nil
 }
 
-func (fs *fileSystem) trimScheme(path string) (string, error) {
+func (fs *FileSystem) trimScheme(path string) (string, error) {
 	const scheme = "file://"
 	if !strings.HasPrefix(path, scheme) {
 		return "", core.NewError(core.InvalidParam, fmt.Sprintf("invalid file path %s", path))
@@ -99,7 +104,7 @@ func (fs *fileSystem) trimScheme(path string) (string, error) {
 	return path[len(scheme):], nil
 }
 
-func (fs *fileSystem) doRemove(sideEffects []*removeSideEffect) error {
+func (fs *FileSystem) doRemove(sideEffects []*removeSideEffect) error {
 	log := fs.ctx.Log
 	for _, se := range sideEffects {
 		if se.Dryrun {
@@ -114,7 +119,7 @@ func (fs *fileSystem) doRemove(sideEffects []*removeSideEffect) error {
 	return nil
 }
 
-func (fs *fileSystem) fetchFiles(path string, exp string) (core.Resources, error) {
+func (fs *FileSystem) fetchFiles(path string, exp string) (core.Resources, error) {
 	includer, err := fs.includePredicator(exp)
 	if err != nil {
 		return nil, err
@@ -135,15 +140,15 @@ func (fs *fileSystem) fetchFiles(path string, exp string) (core.Resources, error
 	return rs, err
 }
 
-func (fs *fileSystem) fetchFile(path string) (core.Resources, error) {
+func (fs *FileSystem) fetchFile(path string) (core.Resources, error) {
 	return core.Resources{fs.resource(path)}, nil
 }
 
-func (fs *fileSystem) resource(path string) core.Resource {
+func (fs *FileSystem) resource(path string) core.Resource {
 	return &fileResource{path: path}
 }
 
-func (fs *fileSystem) includePredicator(exp string) (func(string) bool, error) {
+func (fs *FileSystem) includePredicator(exp string) (func(string) bool, error) {
 	if exp == "" {
 		return includeAll, nil
 	}
@@ -192,4 +197,83 @@ func (r *fileResource) Open() (io.ReadCloser, error) {
 type removeSideEffect struct {
 	Dryrun   bool
 	Filepath string
+}
+
+// DiskUsageInput -
+type DiskUsageInput struct {
+	Root string
+}
+
+// DiskUsageOutput -
+type DiskUsageOutput struct {
+	Root *Dir
+}
+
+// Dir -
+type Dir struct {
+	Path  string
+	Files []os.FileInfo
+	Dirs  []*Dir
+}
+
+// Size -
+func (d *Dir) Size() uint64 {
+	var s uint64
+	for _, info := range d.Files {
+		s += uint64(info.Size())
+	}
+	for _, dir := range d.Dirs {
+		s += uint64(dir.Size())
+	}
+	return s
+}
+
+// Dump -
+func (d *Dir) Dump(w io.Writer) error {
+	if _, err := fmt.Fprintf(w, "%s %s\n", d.Path, humanize.Bytes(d.Size())); err != nil {
+		return err
+	}
+	for _, dir := range d.Dirs {
+		if err := dir.Dump(w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func makeDirTree(ctx context.Context, root string) (*Dir, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	infos, err := ioutil.ReadDir(root)
+	if err != nil {
+		return nil, err
+	}
+	d := &Dir{Path: root}
+
+	for _, info := range infos {
+		if info.IsDir() {
+			dir, err := makeDirTree(ctx, filepath.Join(root, info.Name()))
+			if err != nil {
+				return nil, err
+			}
+			d.Dirs = append(d.Dirs, dir)
+		}
+
+		d.Files = append(d.Files, info)
+	}
+
+	return d, nil
+}
+
+// DiskUsage -
+func (fs *FileSystem) DiskUsage(in *DiskUsageInput) (*DiskUsageOutput, error) {
+	root, err := makeDirTree(fs.ctx.Ctx, in.Root)
+
+	return &DiskUsageOutput{
+		Root: root,
+	}, core.WrapError(core.Internal, "", err)
 }

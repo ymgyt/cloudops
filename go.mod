@@ -1,0 +1,30 @@
+module github.com/ymgyt/cloudops
+
+require (
+	cloud.google.com/go v0.28.0
+	github.com/aws/aws-sdk-go v1.15.45
+	github.com/davecgh/go-spew v1.1.1
+	github.com/dustin/go-humanize v1.0.0
+	github.com/go-ini/ini v1.38.2
+	github.com/go-playground/locales v0.12.1
+	github.com/go-playground/universal-translator v0.16.0
+	github.com/golang/mock v1.1.1
+	github.com/golang/protobuf v1.2.0
+	github.com/google/go-cmp v0.2.0
+	github.com/googleapis/gax-go v2.0.0+incompatible
+	github.com/jawher/mow.cli v1.0.4
+	github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8
+	go.opencensus.io v0.18.0
+	go.uber.org/atomic v1.3.2
+	go.uber.org/multierr v1.1.0
+	go.uber.org/zap v1.9.1
+	golang.org/x/net v0.0.0-20180926154720-4dfa2610cdf3
+	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
+	golang.org/x/sys v0.0.0-20181031143558-9b800f95dbbc
+	golang.org/x/text v0.3.0
+	google.golang.org/api v0.0.0-20180929000454-5da02d31af7d
+	google.golang.org/appengine v1.2.0
+	google.golang.org/genproto v0.0.0-20181101192439-c830210a61df
+	google.golang.org/grpc v1.16.0
+	gopkg.in/go-playground/validator.v9 v9.21.0
+)

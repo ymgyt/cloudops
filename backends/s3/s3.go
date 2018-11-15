@@ -79,7 +79,7 @@ func (c *s3Client) put(r core.Resource, in *core.PutInput) error {
 		return nil
 	}
 	log.Info("copy")
-	_, err = c.client.PutObject(input)
+	_, err = c.client.PutObjectWithContext(c.ctx.Ctx, input)
 	return err
 }
 

@@ -132,3 +132,11 @@ func (fo *fileOps) copyLocalToRemote(in *CopyLocalToRemoteInput) (*CopyLocalToRe
 		RemovedNum: removedNum,
 	}, nil
 }
+
+// DiskUsageInput -
+type DiskUsageInput struct {
+	Root string
+}
+
+// DiskUsageOutput -
+type DiskUsageOutput struct{}

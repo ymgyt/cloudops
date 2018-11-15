@@ -80,18 +80,8 @@ func main() {
 		if confirmer, err = backends.NewPromptConfirmer(os.Stdout, os.Stdin, "[yes/no]", []string{"yes", "y", "Y"}); err != nil {
 			fail(err)
 		}
-		if googleClient, err = newGoogleClient(ctx.Ctx, *googleApplicationCredentials); err != nil {
-			fail(err)
-		}
-		if gcpProject, err = gcp.NewGCPProjectService(ctx, googleClient); err != nil {
-			fail(err)
-		}
-
 		// usecase
 		if fileOps, err = usecase.NewFileOps(ctx, fileSystem, s3Client, confirmer); err != nil {
-			fail(err)
-		}
-		if gcpProjectOps, err = usecase.NewGCPProjectsOps(ctx, gcpProject); err != nil {
 			fail(err)
 		}
 
@@ -130,6 +120,15 @@ func main() {
 	})
 
 	app.Command("project", "manage gcp project resources", func(project *cli.Cmd) {
+		if googleClient, err = newGoogleClient(ctx.Ctx, *googleApplicationCredentials); err != nil {
+			fail(err)
+		}
+		if gcpProject, err = gcp.NewGCPProjectService(ctx, googleClient); err != nil {
+			fail(err)
+		}
+		if gcpProjectOps, err = usecase.NewGCPProjectsOps(ctx, gcpProject); err != nil {
+			fail(err)
+		}
 		project.Command("list", "list projects", func(list *cli.Cmd) {
 			list.Action = func() {
 				(&ProjectListCommand{ctx: ctx, projectsOps: gcpProjectOps}).Run()
@@ -183,6 +182,22 @@ func main() {
 				}).Run()
 			}
 		})
+	})
+
+	app.Command("du", "display disk usage statistics", func(du *cli.Cmd) {
+		du.Spec = "ROOT"
+
+		var (
+			root = du.StringArg("ROOT", "./", "root directory")
+		)
+
+		du.Action = func() {
+			(&DiskUsageCommand{
+				ctx:  ctx,
+				fs:   fileSystem.(*filesystem.FileSystem),
+				root: *root,
+			}).Run()
+		}
 	})
 
 	errCh := make(chan error)
