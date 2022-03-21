@@ -1,0 +1,22 @@
+[package]
+name = "cloudops"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tracing = "0.1.32"
+
+[dependencies.const_format]
+version = "0.2.22"
+
+[dependencies.tracing-subscriber]
+version = "0.3.9"
+features = ["env-filter", "local-time" ]
+
+[dependencies.clap]
+version = "3.1.6"
+features = ["derive", "env"]
+
+[dependencies.tokio]
+version = "1.17.0"
+features = ["fs", "macros", "rt", "rt-multi-thread", "signal", "time"]
