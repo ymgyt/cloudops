@@ -20,7 +20,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        args: --all-featuers --all-targets
+        args: --all-features --all-targets
     - name: Lint rustfmt
       uses: actions-rs/cargo@v1
       with:
