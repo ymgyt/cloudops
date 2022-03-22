@@ -1,6 +1,7 @@
 pub mod envspec;
 
-mod dispatch;
-pub use dispatch::*;
+mod cli;
+pub use cli::*;
 
 mod errors;
+pub(crate) mod operator;

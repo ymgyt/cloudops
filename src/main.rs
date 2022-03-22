@@ -8,6 +8,7 @@ fn init_logger() {
         .with_ansi(true)
         .with_file(true)
         .with_line_number(true)
+        .with_target(false)
         .with_env_filter(filter::EnvFilter::from_env(
             cloudops::envspec::LOG_DIRECTIVES,
         ))
@@ -18,22 +19,16 @@ fn init_logger() {
 async fn main() {
     init_logger();
 
-    // handle signal
     let app = cloudops::CloudOpsApp::parse();
-    if let Err(err) = app.exec() {
-        tracing::error!("{}", err);
+    if let Err(app_err) = app.exec().await {
+        tracing::error!("{}", app_err);
 
-        let mut source = err.source();
-        loop {
-            match source {
-                Some(err) => {
-                    tracing::error!("{}", err);
-                    source = Some(err);
-                }
-                None => break,
-            }
+        let mut err: &dyn Error = &app_err;
+        while let Some(source) = err.source() {
+            tracing::error!("{}", source);
+            err = source;
         }
 
-        std::process::exit(err.exit_code());
+        std::process::exit(app_err.exit_code());
     }
 }

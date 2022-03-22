@@ -3,11 +3,21 @@ name = "cloudops"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-tracing = "0.1.32"
+[[bin]]
+name = "cps"
+path = "src/main.rs"
 
-[dependencies.const_format]
-version = "0.2.22"
+[dependencies]
+aws-config = "0.9.0"
+aws-sdk-s3 = "0.9.0"
+aws-types = "0.9.0"
+aws-smithy-http = "0.39.0"
+aws-smithy-types = "0.39.0"
+tracing = "0.1.32"
+camino = "1.0.7"
+http = "0.2.1"
+const_format = "0.2.22"
+tabled = "0.5.0"
 
 [dependencies.tracing-subscriber]
 version = "0.3.9"
