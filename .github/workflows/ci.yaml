@@ -1,0 +1,28 @@
+on:
+  push:
+    branches: [main]
+
+name: CI
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -D warnings
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs@toolchain@v1
+      with:
+        toolchain: stable
+        components: rustfmt, clippy
+    - name: Lint clippy
+      uses: actions-rs/cargo@v1
+      with:
+        command: clippy
+        args: --all-featuers --all-targets
+    - name: Lint rustfmt
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --check
