@@ -1,0 +1,7 @@
+[tasks.build]
+command = "cargo"
+args = ["build", "--release"]
+
+[tasks.version]
+description = "Print package version"
+script = "./scripts/print_version.sh"

@@ -1,0 +1,26 @@
+on:
+  push:
+    tags:
+    - 'v*.*.*'
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - uses: davidB/rust-cargo-make@v1
+    - name: Build
+      run:  cargo make build
+    - name: Version
+      run: echo "::set-output name=version::$(./scripts/print_version.sh)"
+      id: version
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: ${{ steps.version.outputs.version }}
+        body_path: CHANGELOG.md
+        draft: true
+        prerelease: true
+        files:
+          ./target/release/cps
