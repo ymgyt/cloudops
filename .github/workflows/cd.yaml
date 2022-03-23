@@ -3,6 +3,8 @@ on:
     tags:
     - 'v*.*.*'
 
+name: CD
+
 jobs:
   release:
     name: Release
@@ -20,7 +22,7 @@ jobs:
       with:
         name: ${{ steps.version.outputs.version }}
         body_path: CHANGELOG.md
-        draft: true
+        draft: false
         prerelease: true
         files:
           ./target/release/cps
