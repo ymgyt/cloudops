@@ -5,16 +5,18 @@ use clap::Args;
 
 /// Common options to request aws endpoints
 #[derive(Args, Debug)]
-#[clap(next_help_heading = "AWS")]
+#[clap(next_help_heading = "AWS_OPTIONS")]
 pub struct AwsOptions {
     // Should be enum.
+    /// AWS Region.
     #[clap(long, env = "AWS_REGION")]
     pub region: String,
 
+    /// Service endpoint.(local dynamodb, s3 compatible api,...)
     #[clap(long)]
     pub endpoint: Option<String>,
 
-    #[clap(flatten)]
+    #[clap(flatten, next_help_heading = "AWS_CREDENTIALS")]
     pub credentials: AwsCredentials,
 }
 

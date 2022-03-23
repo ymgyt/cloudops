@@ -8,7 +8,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use clap::{Args, Subcommand};
 
 #[derive(Args, Debug)]
-#[clap(subcommand_required = true)]
+#[clap(arg_required_else_help = true)]
 pub struct S3Command {
     #[clap(flatten)]
     pub aws: AwsOptions,
