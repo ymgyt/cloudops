@@ -13,7 +13,7 @@ pub struct AwsOptions {
     pub region: String,
 
     /// Service endpoint.(local dynamodb, s3 compatible api,...)
-    #[clap(long)]
+    #[clap(long, env = "AWS_ENDPOINT")]
     pub endpoint: Option<String>,
 
     #[clap(flatten, next_help_heading = "AWS_CREDENTIALS")]
