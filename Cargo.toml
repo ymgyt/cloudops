@@ -30,7 +30,7 @@ features = ["env-filter", "local-time" ]
 
 [dependencies.clap]
 version = "3.1.6"
-features = ["derive", "env"]
+features = ["derive", "env", "wrap_help"]
 
 [dependencies.tokio]
 version = "1.17.0"
