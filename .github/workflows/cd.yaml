@@ -15,7 +15,9 @@ jobs:
     - name: Build
       run:  cargo make build
     - name: Version
-      run: echo "::set-output name=version::$(./scripts/print_version.sh)"
+      run: |
+        VERSION=$(cargo run --bin version --quiet)
+        echo "::set-output name=version::${VERSION}"
       id: version
     - name: Release
       uses: softprops/action-gh-release@v1

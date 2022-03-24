@@ -2,10 +2,15 @@
 name = "cloudops"
 version = "0.1.0"
 edition = "2021"
+default-run = "cps"
 
 [[bin]]
 name = "cps"
 path = "src/main.rs"
+
+[[bin]]
+name = "version"
+path = "scripts/print_version.rs"
 
 [dependencies]
 aws-config = "0.9.0"
